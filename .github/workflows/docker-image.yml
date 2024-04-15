@@ -1,39 +1,41 @@
-name: Docker Image CI
+# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
 
-on:
+name: Node.js CI/CD
+
+on: 
   push:
-    branches: [ "master" ]
+    branches: ["master"]
   pull_request:
-    branches: [ "master" ]
+    branches: ["master"]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     strategy:
       matrix:
-        node-version: [20.x,21.x]
+        node-version: [20.x, 21.x]
+
     steps:
     - uses: actions/checkout@v3
-    - name: Use Node.js ${{matrix.node-version }}
+    - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v3
       with: 
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
     - run: npm install
     - run: npm install --save-dev sequelize-cli
-    - run: npm ci --if-present
+    - run: npm ci
     - run: npm run build --if-present
     - run: npm test
 
     - name: Build and push Docker image
       env:
-        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-        DOCKER_IMAGE_NAME: lucaskrispim/15042024:latest
+        DOCKER_USERNAME: ${{secrets.DOCKER_USERNAME}}
+        DOCKER_PASSWORD: ${{secrets.DOCKER_PASSWORD}}
+        DOCKER_IMAGE_NAME: lucaskrispim/nodeimagetest01022024_2:latest
       run: |
-        docker build -t $DOCKER_IMAGE_NAME
+        docker build -t $DOCKER_IMAGE_NAME .
+        echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
         docker push $DOCKER_IMAGE_NAME
-        
-    - name: Trigger deployment
-      run: curl -X POST ${{secrets.TRIGGER_URL }}
